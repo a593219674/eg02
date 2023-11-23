@@ -11,8 +11,28 @@ on:
 
 jobs:
 
+
   build:
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+            # Docker Hub image
+            image: postgres:14
+            # Provide the password for postgres
+            env:
+              POSTGRES_PASSWORD: abc123456
+              POSTGRES_USER: root
+              POSTGRES_PORT: 5432
+              POSTGRES_DB: simple_bank
+            # Set health checks to wait until postgres has started
+            options: >-
+              --health-cmd pg_isready
+              --health-interval 10s
+              --health-timeout 5s
+              --health-retries 5
+
+
     steps:
     - uses: actions/checkout@v3
 
@@ -21,8 +41,20 @@ jobs:
       with:
         go-version: '1.20'
 
+      
+    - name: install golang-migrate
+      run: |
+        curl -L https://github.com/golang-migrate/migrate/releases/download/v4.16.2/migrate.linux-amd64.tar.gz | tar xvz
+        sudo mv migrate.linux-amd64 /usr/bin
+        which migrate
+
+    - name: run migrations
+      run: make migrateup
+
     - name: Build
       run: go build -v ./...
+    
+
 
     - name: Test
       run: make test
